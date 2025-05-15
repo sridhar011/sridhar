@@ -1,0 +1,86 @@
+# ---------------------------------------------
+# ENHANCING ROAD SAFETY WITH AI-DRIVEN TRAFFIC ACCIDENT ANALYSIS & PREDICTION
+# ---------------------------------------------
+
+# Step 1: Install Required Libraries
+!pip install seaborn scikit-learn --quiet
+
+# Step 2: Import Required Libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from google.colab import files
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Step 3: Upload the Dataset Manually
+uploaded = files.upload()  # Upload .csv file manually
+
+# Step 4: Load the Uploaded File into a DataFrame
+for file in uploaded.keys():
+    df = pd.read_csv(file)
+
+# Display the first 5 rows
+print("Sample Data:")
+display(df.head())
+
+# Step 5: Data Cleaning
+required_columns = [
+    'Accident_Severity', 'Speed_limit', 'Weather_conditions', 
+    'Light_conditions', 'Road_surface_conditions', 'Urban_or_Rural_Area'
+]
+
+# Check if all required columns exist
+missing_cols = [col for col in required_columns if col not in df.columns]
+
+if missing_cols:
+    print("Missing columns in dataset:", missing_cols)
+else:
+    # Drop rows with missing values in required columns
+    df = df.dropna(subset=required_columns)
+
+    # Step 6: Encode Categorical Variables
+    df['Weather_conditions'] = df['Weather_conditions'].astype('category').cat.codes
+    df['Light_conditions'] = df['Light_conditions'].astype('category').cat.codes
+    df['Road_surface_conditions'] = df['Road_surface_conditions'].astype('category').cat.codes
+    df['Urban_or_Rural_Area'] = df['Urban_or_Rural_Area'].astype('category').cat.codes
+
+    # Step 7: Define Features and Target Variable
+    X = df[['Speed_limit', 'Weather_conditions', 'Light_conditions',
+            'Road_surface_conditions', 'Urban_or_Rural_Area']]
+    y = df['Accident_Severity']
+
+    # Step 8: Split Dataset into Training and Testing Sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
+
+    # Step 9: Train Random Forest Classifier
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+
+    # Step 10: Make Predictions and Evaluate the Model
+    y_pred = model.predict(X_test)
+
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred))
+
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred))
+
+    # Step 11: Visualize Feature Importance
+    plt.figure(figsize=(8, 5))
+    feature_importance = pd.Series(model.feature_importances_, index=X.columns)
+    feature_importance.sort_values().plot(kind='barh', color='skyblue')
+    plt.title('Feature Importance in Predicting Accident Severity')
+    plt.xlabel('Importance')
+    plt.tight_layout()
+    plt.show()
+
+    # Step 12: Correlation Heatmap (Optional)
+    plt.figure(figsize=(8, 6))
+    corr = df[required_columns].corr()
+    sns.heatmap(corr, annot=True, cmap='coolwarm', linewidths=0.5)
+    plt.title("Correlation Between Features")
+    plt.show()
